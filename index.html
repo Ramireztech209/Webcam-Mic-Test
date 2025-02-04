@@ -61,10 +61,8 @@
         const startButton = document.getElementById('start-button');
         const stopButton = document.getElementById('stop-button');
         let stream;
-        let audioContext;
-        let sourceNode;
-        let delayNode;
-        let destinationNode;
+        let mediaRecorder;
+        let recordedChunks = [];
 
         startButton.addEventListener('click', async () => {
             startButton.disabled = true; // Disable button during test
@@ -73,20 +71,33 @@
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 video.srcObject = stream;
-                statusDiv.textContent = "Webcam and Microphone access granted.";
+                statusDiv.textContent = "Recording for 3 seconds...";
                 stopButton.style.display = 'inline-block';
                 startButton.style.display = 'none';
 
-                // Set up audio context for echo playback
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                sourceNode = audioContext.createMediaStreamSource(stream);
-                delayNode = audioContext.createDelay();
-                delayNode.delayTime.value = 2; // 2 seconds delay
-                destinationNode = audioContext.destination;
+                // Set up media recorder to record for 3 seconds
+                mediaRecorder = new MediaRecorder(stream);
+                recordedChunks = [];
 
-                // Connect nodes
-                sourceNode.connect(delayNode);
-                delayNode.connect(destinationNode);
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                    video.srcObject = null;
+                    video.src = URL.createObjectURL(recordedBlob);
+                    video.controls = true;
+                    video.play();
+                    statusDiv.textContent = "Playback of recorded video and audio.";
+                };
+
+                mediaRecorder.start();
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                }, 3000); // Stop recording after 3 seconds
 
             } catch (err) {
                 statusDiv.textContent = "Error accessing webcam and microphone: " + err.message;
@@ -103,11 +114,7 @@
                 stopButton.style.display = 'none';
                 startButton.disabled = false;
                 video.srcObject = null;
-
-                // Close audio context
-                if (audioContext) {
-                    audioContext.close();
-                }
+                video.controls = false;
             }
         });
     </script>
