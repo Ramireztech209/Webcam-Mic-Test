@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Webcam and Microphone Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0; /* Light gray background */
+    }
+    #video {
+      width: 640px;
+      height: 480px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50; /* Green */
+      border: none;
+      color: white;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 5px; /* Rounded corners */
+    }
+    button:hover {
+      background-color: #45a049; /* Darker green on hover */
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Webcam and Microphone Test</h1>
+
+  <video id="video" autoplay playsinline></video>
+  <div id="status">Initializing...</div>
+  <button id="start-button">Start Test</button>
+
+  <script>
+    const video = document.getElementById('video');
+    const statusDiv = document.getElementById('status');
+    const startButton = document.getElementById('start-button');
+    let stream;
+
+    startButton.addEventListener('click', async () => {
+      startButton.disabled = true; // Disable button during test
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        video.srcObject = stream;
+        statusDiv.textContent = "Webcam and Microphone access granted.";
+        startButton.textContent = "Testing... (Look and speak)"; // Update button text
+      } catch (err) {
+        statusDiv.textContent = "Error accessing webcam and microphone: " + err.message;
+        startButton.disabled = false; // Re-enable button if error occurs
+        return; // Stop execution here to avoid issues
+      }
+
+      // Optional: Add code to record audio/video if needed. This is more complex.
+      // For a simple test, just seeing the video and hearing yourself talk is often enough.
+    });
+
+    // Optional: Function to stop the media stream
+    function stopStream() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        statusDiv.textContent = "Test stopped.";
+        startButton.disabled = false;
+        startButton.textContent = "Start Test";
+      }
+    }
+  </script>
+
+</body>
+</html>
