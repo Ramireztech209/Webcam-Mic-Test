@@ -1,4 +1,4 @@
 ---
-title: Chromebook  Mic and Webcame Test
+title: Chromebook  Mic and Webcam Test
 ---
-
+Simple and ad-free
