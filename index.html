@@ -61,6 +61,10 @@
         const startButton = document.getElementById('start-button');
         const stopButton = document.getElementById('stop-button');
         let stream;
+        let audioContext;
+        let sourceNode;
+        let delayNode;
+        let destinationNode;
 
         startButton.addEventListener('click', async () => {
             startButton.disabled = true; // Disable button during test
@@ -72,6 +76,18 @@
                 statusDiv.textContent = "Webcam and Microphone access granted.";
                 stopButton.style.display = 'inline-block';
                 startButton.style.display = 'none';
+
+                // Set up audio context for echo playback
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                sourceNode = audioContext.createMediaStreamSource(stream);
+                delayNode = audioContext.createDelay();
+                delayNode.delayTime.value = 2; // 2 seconds delay
+                destinationNode = audioContext.destination;
+
+                // Connect nodes
+                sourceNode.connect(delayNode);
+                delayNode.connect(destinationNode);
+
             } catch (err) {
                 statusDiv.textContent = "Error accessing webcam and microphone: " + err.message;
                 startButton.disabled = false; // Re-enable button if error occurs
@@ -87,6 +103,11 @@
                 stopButton.style.display = 'none';
                 startButton.disabled = false;
                 video.srcObject = null;
+
+                // Close audio context
+                if (audioContext) {
+                    audioContext.close();
+                }
             }
         });
     </script>
