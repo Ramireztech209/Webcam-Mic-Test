@@ -1,45 +1,95 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <!-- SignalWire Library -->
-    <script src="https://unpkg.com/@signalwire/js@^3.9"></script>
-
+<head>
+    <title>Webcam and Microphone Test</title>
     <style>
-      body { margin: auto; max-width: 900px; }
-      label {display: block; margin-right: 10px; }
-      #videoElement { display: block; width: 400px; }
-      #audioMeter { width: 400px; }
-      .selectors { display: flex; margin-bottom: 1em; }
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0; /* Light gray background */
+        }
+
+        #video {
+            width: 640px;
+            height: 480px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50; /* Green */
+            border: none;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px; /* Rounded corners */
+        }
+
+        button:hover {
+            background-color: #45a049; /* Darker green on hover */
+        }
+
     </style>
-  </head>
-  <body class="container">
-    <p>Test your camera and microphone.</p>
+</head>
+<body>
 
-    <div class="selectors">
-      <div>
-        <label for="cameraSelector">Camera:</label>
-        <select id="cameraSelector"></select>
-      </div>
-      <div>
-        <label for="microphoneSelector">Microphone:</label>
-        <select id="microphoneSelector"></select>
-      </div>
-    </div>
+    <h1>Webcam and Microphone Test</h1>
 
-    <div>
-      <label>
-        <input id="loopbackMic" type="checkbox" autocomplete="off">
-        Echo audio input (can cause feedback!)
-      </label>
-    </div>
+    <video id="video" autoplay playsinline></video>
+    <div id="status" aria-live="polite">Initializing...</div>
+    <button id="start-button">Start Test</button>
+    <button id="stop-button" style="display:none;">Stop Test</button>
 
-    <!-- Video test canvas -->
-    <video id="videoElement" autoplay="true" muted="true"></video>
+    <script>
+        const video = document.getElementById('video');
+        const statusDiv = document.getElementById('status');
+        const startButton = document.getElementById('start-button');
+        const stopButton = document.getElementById('stop-button');
+        let stream;
 
-    <!-- Audio test meter -->
-    <meter id="audioMeter" min="0" max="100" high="90"></meter>
+        startButton.addEventListener('click', async () => {
+            startButton.disabled = true; // Disable button during test
+            statusDiv.textContent = "Initializing...";
 
-    <!-- Include our script -->
-    <script src="index.js"></script>
-  </body>
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                video.srcObject = stream;
+                statusDiv.textContent = "Webcam and Microphone access granted.";
+                stopButton.style.display = 'inline-block';
+                startButton.style.display = 'none';
+            } catch (err) {
+                statusDiv.textContent = "Error accessing webcam and microphone: " + err.message;
+                startButton.disabled = false; // Re-enable button if error occurs
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                statusDiv.textContent = "Test stopped. You can start again.";
+                startButton.style.display = 'inline-block';
+                stopButton.style.display = 'none';
+                startButton.disabled = false;
+                video.srcObject = null;
+            }
+        });
+    </script>
+
+</body>
 </html>
