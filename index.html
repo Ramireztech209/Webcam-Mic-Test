@@ -6,12 +6,35 @@
         body {
             font-family: sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             min-height: 100vh;
             margin: 0;
             background-color: #f0f0f0; /* Light gray background */
+        }
+
+        #header {
+            width: 100%;
+            text-align: center;
+            padding: 20px;
+            background-color: #4CAF50; /* Green */
+            color: white;
+        }
+
+        #sidebar {
+            width: 300px;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         #video {
@@ -54,13 +77,26 @@
 </head>
 <body>
 
-    <h1>Webcam and Microphone Test</h1>
+    <div id="header">
+        <h1>Webcam and Microphone Test</h1>
+    </div>
 
-    <video id="video" autoplay playsinline></video>
-    <canvas id="visualizer"></canvas>
-    <div id="status" aria-live="polite">Initializing...</div>
-    <button id="start-button">Start Test</button>
-    <button id="stop-button" style="display:none;">Stop Test</button>
+    <div id="sidebar">
+        <h2>Chromebook Information</h2>
+        <div id="battery-info">Battery: Fetching...</div>
+        <div id="ram-info">RAM: Fetching...</div>
+        <div id="cpu-temp-info">CPU Temperature: Fetching...</div>
+        <div id="storage-info">Storage: Fetching...</div>
+        <div id="other-info">Other Info: Fetching...</div>
+    </div>
+
+    <div id="content">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="visualizer"></canvas>
+        <div id="status" aria-live="polite">Initializing...</div>
+        <button id="start-button">Start Test</button>
+        <button id="stop-button" style="display:none;">Stop Test</button>
+    </div>
 
     <script>
         const video = document.getElementById('video');
@@ -192,6 +228,43 @@
             canvasCtx.lineTo(canvas.width, canvas.height / 2);
             canvasCtx.stroke();
         }
+
+        // Fetch Chromebook information
+        async function fetchChromebookInfo() {
+            // Battery information
+            try {
+                const battery = await navigator.getBattery();
+                document.getElementById('battery-info').textContent = `Battery: ${Math.round(battery.level * 100)}%`;
+            } catch (e) {
+                document.getElementById('battery-info').textContent = "Battery: Not available";
+            }
+
+            // RAM information
+            if (navigator.deviceMemory) {
+                document.getElementById('ram-info').textContent = `RAM: ${navigator.deviceMemory} GB`;
+            } else {
+                document.getElementById('ram-info').textContent = "RAM: Not available";
+            }
+
+            // CPU Information (Temperature is not directly accessible via browser)
+            document.getElementById('cpu-temp-info').textContent = "CPU Temperature: Not available";
+
+            // Storage information
+            if (navigator.storage && navigator.storage.estimate) {
+                const estimate = await navigator.storage.estimate();
+                const used = (estimate.usage / (1024 * 1024 * 1024)).toFixed(2);
+                const total = (estimate.quota / (1024 * 1024 * 1024)).toFixed(2);
+                document.getElementById('storage-info').textContent = `Storage: ${used} GB used of ${total} GB`;
+            } else {
+                document.getElementById('storage-info').textContent = "Storage: Not available";
+            }
+
+            // Other information
+            document.getElementById('other-info').textContent = `User Agent: ${navigator.userAgent}`;
+        }
+
+        fetchChromebookInfo();
+
     </script>
 
 </body>
