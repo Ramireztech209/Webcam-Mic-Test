@@ -84,11 +84,11 @@
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 video.srcObject = stream;
-                statusDiv.textContent = "Recording for 3 seconds...";
+                statusDiv.textContent = "Recording for 6 seconds...";
                 stopButton.style.display = 'inline-block';
                 startButton.style.display = 'none';
 
-                // Set up media recorder to record for 3 seconds
+                // Set up media recorder to record for 6 seconds
                 mediaRecorder = new MediaRecorder(stream);
                 recordedChunks = [];
 
@@ -101,7 +101,7 @@
                 mediaRecorder.start();
                 setTimeout(() => {
                     stopTest();
-                }, 3000); // Stop recording after 3 seconds
+                }, 6000); // Stop recording after 6 seconds
 
                 // Set up audio context and visualizer
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
