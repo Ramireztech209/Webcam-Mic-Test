@@ -98,6 +98,20 @@
                     }
                 };
 
+                mediaRecorder.onstop = () => {
+                    console.log("MediaRecorder stopped");
+                    if (recordedChunks.length > 0) {
+                        const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                        video.srcObject = null;
+                        video.src = URL.createObjectURL(recordedBlob);
+                        video.controls = true;
+                        video.play(); // Auto play the recorded video
+                        statusDiv.textContent = "Playback of recorded video and audio.";
+                    } else {
+                        statusDiv.textContent = "No recording available.";
+                    }
+                };
+
                 mediaRecorder.start();
                 setTimeout(() => {
                     stopTest();
@@ -126,24 +140,19 @@
 
         function stopTest() {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                console.log("Stopping mediaRecorder");
                 mediaRecorder.stop();
+            } else {
+                console.log("MediaRecorder is already inactive or not initialized");
+                finalizeTest();
             }
+        }
 
+        function finalizeTest() {
             if (stream) {
                 const tracks = stream.getTracks();
                 tracks.forEach(track => track.stop());
                 stream = null;
-            }
-
-            if (recordedChunks.length > 0) {
-                const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                video.srcObject = null;
-                video.src = URL.createObjectURL(recordedBlob);
-                video.controls = true;
-                video.play(); // Auto play the recorded video
-                statusDiv.textContent = "Playback of recorded video and audio.";
-            } else {
-                statusDiv.textContent = "No recording available.";
             }
 
             startButton.style.display = 'inline-block';
