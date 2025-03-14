@@ -61,6 +61,7 @@
     <div id="status" aria-live="polite">Initializing...</div>
     <button id="start-button">Start Test</button>
     <button id="stop-button" style="display:none;">Stop Test</button>
+    <button id="speaker-test-button">Speaker Test</button>
 
     <script>
         const video = document.getElementById('video');
@@ -69,6 +70,7 @@
         const statusDiv = document.getElementById('status');
         const startButton = document.getElementById('start-button');
         const stopButton = document.getElementById('stop-button');
+        const speakerTestButton = document.getElementById('speaker-test-button');
         let stream;
         let mediaRecorder;
         let recordedChunks = [];
@@ -192,6 +194,50 @@
             canvasCtx.lineTo(canvas.width, canvas.height / 2);
             canvasCtx.stroke();
         }
+
+        // Speaker test function
+        speakerTestButton.addEventListener('click', () => {
+            const leftBeep = new AudioContext();
+            const rightBeep = new AudioContext();
+
+            const oscillatorLeft = leftBeep.createOscillator();
+            const oscillatorRight = rightBeep.createOscillator();
+
+            oscillatorLeft.type = 'sine';
+            oscillatorLeft.frequency.setValueAtTime(440, leftBeep.currentTime);
+
+            oscillatorRight.type = 'sine';
+            oscillatorRight.frequency.setValueAtTime(440, rightBeep.currentTime);
+
+            const leftGain = leftBeep.createGain();
+            const rightGain = rightBeep.createGain();
+
+            leftGain.gain.setValueAtTime(1, leftBeep.currentTime);
+            rightGain.gain.setValueAtTime(1, rightBeep.currentTime);
+
+            oscillatorLeft.connect(leftGain).connect(leftBeep.destination);
+            oscillatorRight.connect(rightGain).connect(rightBeep.destination);
+
+            // Pan the beeps to left and right
+            const leftPanner = leftBeep.createStereoPanner();
+            leftPanner.pan.setValueAtTime(-1, leftBeep.currentTime);
+            leftGain.connect(leftPanner).connect(leftBeep.destination);
+
+            const rightPanner = rightBeep.createStereoPanner();
+            rightPanner.pan.setValueAtTime(1, rightBeep.currentTime);
+            rightGain.connect(rightPanner).connect(rightBeep.destination);
+
+            // Play left beep
+            oscillatorLeft.start();
+            setTimeout(() => {
+                oscillatorLeft.stop();
+                // Play right beep after left beep stops
+                oscillatorRight.start();
+                setTimeout(() => {
+                    oscillatorRight.stop();
+                }, 500); // Beep duration for right speaker
+            }, 500); // Beep duration for left speaker
+        });
     </script>
 
 </body>
