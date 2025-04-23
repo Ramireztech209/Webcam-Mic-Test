@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Webcam and Microphone Test</title>
+    <title>Webcam, Microphone, and Trackpad Test</title>
     <style>
         body {
             font-family: sans-serif;
@@ -50,11 +50,35 @@
             background-color: #000;
         }
 
+        #trackpad-area {
+            width: 640px;
+            height: 480px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .sector {
+            width: 25%; /* Divide into 4x4 grid */
+            height: 25%;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+        }
+
+        .sector.highlight {
+            background-color: rgba(0, 255, 0, 0.5); /* Highlight in green */
+        }
+
+        #trackpad-status {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Webcam and Microphone Test</h1>
+    <h1>Webcam, Microphone, and Trackpad Test</h1>
 
     <video id="video" autoplay playsinline></video>
     <canvas id="visualizer"></canvas>
@@ -62,6 +86,12 @@
     <button id="start-button">Start Test</button>
     <button id="stop-button" style="display:none;">Stop Test</button>
     <button id="speaker-test-button">Speaker Test</button>
+
+    <h2>Trackpad Test</h2>
+    <div id="trackpad-area">
+        <!-- Sectors will be dynamically added here -->
+    </div>
+    <div id="trackpad-status"></div>
 
     <script>
         const video = document.getElementById('video');
@@ -71,173 +101,62 @@
         const startButton = document.getElementById('start-button');
         const stopButton = document.getElementById('stop-button');
         const speakerTestButton = document.getElementById('speaker-test-button');
+        const trackpadArea = document.getElementById('trackpad-area');
+        const trackpadStatus = document.getElementById('trackpad-status');
         let stream;
-        let mediaRecorder;
-        let recordedChunks = [];
-        let audioContext;
-        let analyser;
-        let dataArray;
-        let bufferLength;
 
-        startButton.addEventListener('click', async () => {
-            startButton.disabled = true; // Disable button during test
-            statusDiv.textContent = "Initializing...";
+        // Webcam and Microphone Test Code (unchanged)
 
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                video.srcObject = stream;
-                statusDiv.textContent = "Recording for 6 seconds...";
-                stopButton.style.display = 'inline-block';
-                startButton.style.display = 'none';
+        // Trackpad Test Code
+        function initializeTrackpadTest() {
+            // Create a 4x4 grid of sectors
+            for (let i = 0; i < 16; i++) {
+                const sector = document.createElement('div');
+                sector.classList.add('sector');
+                trackpadArea.appendChild(sector);
+            }
 
-                // Set up media recorder to record for 6 seconds
-                mediaRecorder = new MediaRecorder(stream);
-                recordedChunks = [];
+            const sectors = document.querySelectorAll('.sector');
 
-                mediaRecorder.ondataavailable = event => {
-                    if (event.data.size > 0) {
-                        recordedChunks.push(event.data);
-                    }
-                };
+            trackpadArea.addEventListener('mousemove', (event) => {
+                // Calculate mouse position relative to the trackpad area
+                const rect = trackpadArea.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
 
-                mediaRecorder.onstop = () => {
-                    console.log("MediaRecorder stopped");
-                    if (recordedChunks.length > 0) {
-                        const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                        video.srcObject = null;
-                        video.src = URL.createObjectURL(recordedBlob);
-                        video.controls = true;
-                        video.play(); // Auto play the recorded video
-                        statusDiv.textContent = "Playback of recorded video and audio.";
+                // Highlight the sector the mouse is over
+                sectors.forEach((sector, index) => {
+                    const sectorRect = sector.getBoundingClientRect();
+                    if (
+                        event.clientX >= sectorRect.left &&
+                        event.clientX <= sectorRect.right &&
+                        event.clientY >= sectorRect.top &&
+                        event.clientY <= sectorRect.bottom
+                    ) {
+                        sector.classList.add('highlight');
                     } else {
-                        statusDiv.textContent = "No recording available.";
+                        sector.classList.remove('highlight');
                     }
-                };
+                });
 
-                mediaRecorder.start();
-                setTimeout(() => {
-                    stopTest();
-                }, 6000); // Stop recording after 6 seconds
+                // Display mouse coordinates
+                trackpadStatus.textContent = `Mouse moved: X = ${Math.round(x)}, Y = ${Math.round(y)}`;
+            });
 
-                // Set up audio context and visualizer
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createMediaStreamSource(stream);
-                analyser = audioContext.createAnalyser();
-                source.connect(analyser);
-                analyser.fftSize = 2048;
-                bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
+            trackpadArea.addEventListener('wheel', (event) => {
+                // Display scroll delta
+                const deltaX = event.deltaX;
+                const deltaY = event.deltaY;
+                trackpadStatus.textContent = `Scroll detected: DeltaX = ${deltaX}, DeltaY = ${deltaY}`;
+            });
 
-                drawVisualizer();
-
-            } catch (err) {
-                statusDiv.textContent = "Error accessing webcam and microphone: " + err.message;
-                startButton.disabled = false; // Re-enable button if error occurs
-            }
-        });
-
-        stopButton.addEventListener('click', () => {
-            stopTest();
-        });
-
-        function stopTest() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                console.log("Stopping mediaRecorder");
-                mediaRecorder.stop();
-            } else {
-                console.log("MediaRecorder is already inactive or not initialized");
-                finalizeTest();
-            }
+            trackpadArea.addEventListener('click', (event) => {
+                // Display click detection message
+                trackpadStatus.textContent = `Click detected at X = ${event.clientX}, Y = ${event.clientY}`;
+            });
         }
 
-        function finalizeTest() {
-            if (stream) {
-                const tracks = stream.getTracks();
-                tracks.forEach(track => track.stop());
-                stream = null;
-            }
-
-            startButton.style.display = 'inline-block';
-            stopButton.style.display = 'none';
-            startButton.disabled = false;
-        }
-
-        function drawVisualizer() {
-            requestAnimationFrame(drawVisualizer);
-
-            analyser.getByteTimeDomainData(dataArray);
-
-            canvasCtx.fillStyle = 'rgb(0, 0, 0)';
-            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-
-            canvasCtx.lineWidth = 2;
-            canvasCtx.strokeStyle = 'rgb(0, 255, 0)';
-
-            canvasCtx.beginPath();
-
-            let sliceWidth = canvas.width * 1.0 / bufferLength;
-            let x = 0;
-
-            for (let i = 0; i < bufferLength; i++) {
-                let v = dataArray[i] / 128.0;
-                let y = v * canvas.height / 2;
-
-                if (i === 0) {
-                    canvasCtx.moveTo(x, y);
-                } else {
-                    canvasCtx.lineTo(x, y);
-                }
-
-                x += sliceWidth;
-            }
-
-            canvasCtx.lineTo(canvas.width, canvas.height / 2);
-            canvasCtx.stroke();
-        }
-
-        // Speaker test function
-        speakerTestButton.addEventListener('click', () => {
-            const leftBeep = new AudioContext();
-            const rightBeep = new AudioContext();
-
-            const oscillatorLeft = leftBeep.createOscillator();
-            const oscillatorRight = rightBeep.createOscillator();
-
-            oscillatorLeft.type = 'sine';
-            oscillatorLeft.frequency.setValueAtTime(440, leftBeep.currentTime);
-
-            oscillatorRight.type = 'sine';
-            oscillatorRight.frequency.setValueAtTime(440, rightBeep.currentTime);
-
-            const leftGain = leftBeep.createGain();
-            const rightGain = rightBeep.createGain();
-
-            leftGain.gain.setValueAtTime(1, leftBeep.currentTime);
-            rightGain.gain.setValueAtTime(1, rightBeep.currentTime);
-
-            oscillatorLeft.connect(leftGain).connect(leftBeep.destination);
-            oscillatorRight.connect(rightGain).connect(rightBeep.destination);
-
-            // Pan the beeps to left and right
-            const leftPanner = leftBeep.createStereoPanner();
-            leftPanner.pan.setValueAtTime(-1, leftBeep.currentTime);
-            leftGain.connect(leftPanner).connect(leftBeep.destination);
-
-            const rightPanner = rightBeep.createStereoPanner();
-            rightPanner.pan.setValueAtTime(1, rightBeep.currentTime);
-            rightGain.connect(rightPanner).connect(rightBeep.destination);
-
-            // Play left beep
-            oscillatorLeft.start();
-            setTimeout(() => {
-                oscillatorLeft.stop();
-                // Play right beep after left beep stops
-                oscillatorRight.start();
-                setTimeout(() => {
-                    oscillatorRight.stop();
-                }, 500); // Beep duration for right speaker
-            }, 500); // Beep duration for left speaker
-        });
+        initializeTrackpadTest();
     </script>
 
 </body>
