@@ -94,65 +94,22 @@
     <div id="trackpad-status"></div>
 
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('visualizer');
-        const canvasCtx = canvas.getContext('2d');
-        const statusDiv = document.getElementById('status');
         const startButton = document.getElementById('start-button');
         const stopButton = document.getElementById('stop-button');
         const speakerTestButton = document.getElementById('speaker-test-button');
-        const trackpadArea = document.getElementById('trackpad-area');
-        const trackpadStatus = document.getElementById('trackpad-status');
         let stream;
         let audioContext;
-        let microphone;
-        let analyzer;
 
         // Webcam and Microphone Test Code
         async function startTest() {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                video.srcObject = stream;
-
-                // Set up Microphone Visualizer
-                audioContext = new AudioContext();
-                microphone = audioContext.createMediaStreamSource(stream);
-                analyzer = audioContext.createAnalyser();
-                microphone.connect(analyzer);
-                analyzer.fftSize = 256;
-
-                const bufferLength = analyzer.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
-
-                function drawVisualizer() {
-                    requestAnimationFrame(drawVisualizer);
-
-                    analyzer.getByteFrequencyData(dataArray);
-
-                    canvasCtx.fillStyle = 'black';
-                    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    const barWidth = (canvas.width / bufferLength) * 2.5;
-                    let barHeight;
-                    let x = 0;
-
-                    for (let i = 0; i < bufferLength; i++) {
-                        barHeight = dataArray[i];
-
-                        canvasCtx.fillStyle = `rgb(${barHeight + 100},50,50)`;
-                        canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-
-                        x += barWidth + 1;
-                    }
-                }
-
-                drawVisualizer();
-
-                statusDiv.textContent = 'Webcam and Microphone are active.';
+                document.getElementById('video').srcObject = stream;
+                document.getElementById('status').textContent = 'Webcam and Microphone are active.';
                 startButton.style.display = 'none';
                 stopButton.style.display = 'inline-block';
             } catch (error) {
-                statusDiv.textContent = `Error: ${error.message}`;
+                document.getElementById('status').textContent = `Error: ${error.message}`;
             }
         }
 
@@ -160,22 +117,56 @@
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
-            if (audioContext) {
-                audioContext.close();
-            }
-            statusDiv.textContent = 'Test stopped.';
+            document.getElementById('status').textContent = 'Test stopped.';
             startButton.style.display = 'inline-block';
             stopButton.style.display = 'none';
         }
 
-        // Speaker Test Code
+        // Speaker Test Code - Zelda-like melody
         speakerTestButton.addEventListener('click', () => {
-            const audio = new Audio('https://www.soundjay.com/button/beep-07.wav');
-            audio.play();
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            const melody = [
+                { frequency: 523.25, duration: 0.4 }, // C5
+                { frequency: 587.33, duration: 0.4 }, // D5
+                { frequency: 659.25, duration: 0.4 }, // E5
+                { frequency: 698.46, duration: 0.4 }, // F5
+                { frequency: 783.99, duration: 0.4 }, // G5
+                { frequency: 659.25, duration: 0.4 }, // E5
+                { frequency: 523.25, duration: 0.8 }  // C5 (hold)
+            ];
+
+            let startTime = audioContext.currentTime;
+
+            melody.forEach(note => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.frequency.setValueAtTime(note.frequency, startTime);
+                oscillator.type = 'sine'; // Use a sine wave for a soft tone
+
+                gainNode.gain.setValueAtTime(0.5, startTime); // Set volume
+                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
+
+                oscillator.connect(gainNode).connect(audioContext.destination);
+
+                oscillator.start(startTime);
+                oscillator.stop(startTime + note.duration);
+
+                startTime += note.duration;
+            });
         });
+
+        startButton.addEventListener('click', startTest);
+        stopButton.addEventListener('click', stopTest);
 
         // Trackpad Test Code
         function initializeTrackpadTest() {
+            const trackpadArea = document.getElementById('trackpad-area');
+            const trackpadStatus = document.getElementById('trackpad-status');
+
             for (let i = 0; i < 16; i++) {
                 const sector = document.createElement('div');
                 sector.classList.add('sector');
@@ -216,9 +207,6 @@
                 trackpadStatus.textContent = `Click detected at X = ${event.clientX}, Y = ${event.clientY}`;
             });
         }
-
-        startButton.addEventListener('click', startTest);
-        stopButton.addEventListener('click', stopTest);
 
         initializeTrackpadTest();
     </script>
