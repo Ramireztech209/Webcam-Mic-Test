@@ -104,12 +104,78 @@
         const trackpadArea = document.getElementById('trackpad-area');
         const trackpadStatus = document.getElementById('trackpad-status');
         let stream;
+        let audioContext;
+        let microphone;
+        let analyzer;
 
-        // Webcam and Microphone Test Code (unchanged)
+        // Webcam and Microphone Test Code
+        async function startTest() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                video.srcObject = stream;
+
+                // Set up Microphone Visualizer
+                audioContext = new AudioContext();
+                microphone = audioContext.createMediaStreamSource(stream);
+                analyzer = audioContext.createAnalyser();
+                microphone.connect(analyzer);
+                analyzer.fftSize = 256;
+
+                const bufferLength = analyzer.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+
+                function drawVisualizer() {
+                    requestAnimationFrame(drawVisualizer);
+
+                    analyzer.getByteFrequencyData(dataArray);
+
+                    canvasCtx.fillStyle = 'black';
+                    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const barWidth = (canvas.width / bufferLength) * 2.5;
+                    let barHeight;
+                    let x = 0;
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        barHeight = dataArray[i];
+
+                        canvasCtx.fillStyle = `rgb(${barHeight + 100},50,50)`;
+                        canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+                        x += barWidth + 1;
+                    }
+                }
+
+                drawVisualizer();
+
+                statusDiv.textContent = 'Webcam and Microphone are active.';
+                startButton.style.display = 'none';
+                stopButton.style.display = 'inline-block';
+            } catch (error) {
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function stopTest() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+            statusDiv.textContent = 'Test stopped.';
+            startButton.style.display = 'inline-block';
+            stopButton.style.display = 'none';
+        }
+
+        // Speaker Test Code
+        speakerTestButton.addEventListener('click', () => {
+            const audio = new Audio('https://www.soundjay.com/button/beep-07.wav');
+            audio.play();
+        });
 
         // Trackpad Test Code
         function initializeTrackpadTest() {
-            // Create a 4x4 grid of sectors
             for (let i = 0; i < 16; i++) {
                 const sector = document.createElement('div');
                 sector.classList.add('sector');
@@ -119,13 +185,11 @@
             const sectors = document.querySelectorAll('.sector');
 
             trackpadArea.addEventListener('mousemove', (event) => {
-                // Calculate mouse position relative to the trackpad area
                 const rect = trackpadArea.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
 
-                // Highlight the sector the mouse is over
-                sectors.forEach((sector, index) => {
+                sectors.forEach((sector) => {
                     const sectorRect = sector.getBoundingClientRect();
                     if (
                         event.clientX >= sectorRect.left &&
@@ -139,22 +203,22 @@
                     }
                 });
 
-                // Display mouse coordinates
                 trackpadStatus.textContent = `Mouse moved: X = ${Math.round(x)}, Y = ${Math.round(y)}`;
             });
 
             trackpadArea.addEventListener('wheel', (event) => {
-                // Display scroll delta
                 const deltaX = event.deltaX;
                 const deltaY = event.deltaY;
                 trackpadStatus.textContent = `Scroll detected: DeltaX = ${deltaX}, DeltaY = ${deltaY}`;
             });
 
             trackpadArea.addEventListener('click', (event) => {
-                // Display click detection message
                 trackpadStatus.textContent = `Click detected at X = ${event.clientX}, Y = ${event.clientY}`;
             });
         }
+
+        startButton.addEventListener('click', startTest);
+        stopButton.addEventListener('click', stopTest);
 
         initializeTrackpadTest();
     </script>
